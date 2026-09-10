@@ -165,6 +165,10 @@
     , '开放时间（可选）': 'Opening hours (optional)'
     , '例如：09:00-18:00 / 全天开放 / 周二闭馆': 'e.g. 09:00-18:00 / open all day / closed on Tuesdays'
     , '待补充': 'TBD'
+    , '第一张是封面。长按照片可拖动调整顺序，也可以点左下角「设为封面」把某张设为首图。': 'The first photo is the cover. Press and hold a photo to drag it into a new order, or tap Set as cover.'
+    , '设为封面': 'Set as cover', '封面': 'Cover', '已设为封面': 'Set as cover'
+    , '顺序已更新': 'Order updated', '拖动到想放的位置，松手完成排序': 'Drag to where you want it, then release'
+    , '照片会自动压缩后保存在本地浏览器，方便演示。': 'Photos are compressed and uploaded to the cloud.'
   };
 
   /* 动态文本：命中则按正则替换 */

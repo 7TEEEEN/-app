@@ -877,7 +877,7 @@ function uploadFormHTML(u, isEdit) {
       <div class="block">
         <h3><span class="mat">photo_library</span> 实拍照片<i class="req">2-9 张</i></h3>
         <div class="up-grid" id="upGrid"></div>
-        <p class="hint">照片会自动压缩后保存在本地浏览器，方便演示。</p>
+        <p class="hint">第一张是封面。长按照片可拖动调整顺序，也可以点左下角「设为封面」把某张设为首图。</p>
       </div>
       <div class="block">
         <h3><span class="mat">auto_awesome</span> 这里适合拍什么照片<i class="req">必填</i></h3>
@@ -1002,8 +1002,88 @@ function renderUpGrid() {
   if (!g) return;
   const u = state.upload;
   g.innerHTML = u.images.map((src, i) => `
-    <div class="up-item"><img src="${src}" alt="上传照片${i + 1}"><button onclick="removeImg(${i})" aria-label="删除">×</button></div>`).join('')
+    <div class="up-item" data-idx="${i}">
+      <img src="${src}" alt="上传照片${i + 1}" draggable="false">
+      ${u.images.length > 1 ? `<span class="up-idx">${i + 1}</span>` : ''}
+      ${i === 0
+        ? (u.images.length > 1 ? '<span class="up-cover-tag">封面</span>' : '')
+        : `<button class="up-cover" onclick="setCover(${i})">设为封面</button>`}
+      <button onclick="removeImg(${i})" aria-label="删除">×</button>
+    </div>`).join('')
     + (u.images.length < 9 ? `<label class="up-add"><input type="file" accept="image/*" multiple hidden onchange="onFiles(this.files)"><span>+</span></label>` : '');
+  enablePhotoDrag(g);
+}
+/* 照片排序：长按拖动（触屏/鼠标都可用）+ 一键设为封面 */
+let upDrag = null;
+let upHold = null;
+let upPending = null;
+function enablePhotoDrag(grid) {
+  if (!grid || grid._pg) return;
+  grid._pg = true;
+  grid.addEventListener('pointerdown', (e) => {
+    const item = e.target.closest && e.target.closest('.up-item');
+    if (!item || (e.target.closest && e.target.closest('button'))) return;
+    upPending = { idx: Number(item.dataset.idx), x: e.clientX, y: e.clientY };
+    clearTimeout(upHold);
+    upHold = setTimeout(() => {
+      if (!upPending) return;
+      upDrag = { idx: upPending.idx };
+      upPending = null;
+      try { grid.setPointerCapture(e.pointerId); } catch (err) { /* 忽略 */ }
+      markUpDrag();
+      toast('拖动到想放的位置，松手完成排序');
+    }, 260);
+  });
+  grid.addEventListener('pointermove', (e) => {
+    if (upPending) {
+      if (Math.abs(e.clientX - upPending.x) > 10 || Math.abs(e.clientY - upPending.y) > 10) {
+        clearTimeout(upHold);
+        upPending = null;
+      }
+      return;
+    }
+    if (upDrag) moveUpDrag(e.clientX, e.clientY);
+  });
+  const endDrag = () => {
+    clearTimeout(upHold);
+    upPending = null;
+    if (!upDrag) return;
+    upDrag = null;
+    renderUpGrid();
+    toast('顺序已更新');
+  };
+  grid.addEventListener('pointerup', endDrag);
+  grid.addEventListener('pointercancel', endDrag);
+  grid.addEventListener('touchmove', (e) => { if (upDrag) e.preventDefault(); }, { passive: false });
+}
+function markUpDrag() {
+  const g = document.getElementById('upGrid');
+  if (!g || !upDrag) return;
+  g.querySelectorAll('.up-item').forEach((el) => {
+    el.classList.toggle('dragging', Number(el.dataset.idx) === upDrag.idx);
+  });
+}
+function moveUpDrag(x, y) {
+  if (!upDrag) return;
+  const el = document.elementFromPoint(x, y);
+  const item = el && el.closest ? el.closest('.up-item') : null;
+  if (!item) return;
+  const to = Number(item.dataset.idx);
+  if (isNaN(to) || to === upDrag.idx) return;
+  const imgs = state.upload.images;
+  const moved = imgs.splice(upDrag.idx, 1)[0];
+  imgs.splice(to, 0, moved);
+  upDrag.idx = to;
+  renderUpGrid();
+  markUpDrag();
+}
+function setCover(i) {
+  const imgs = state.upload.images;
+  if (i <= 0 || i >= imgs.length) return;
+  const moved = imgs.splice(i, 1)[0];
+  imgs.unshift(moved);
+  renderUpGrid();
+  toast('已设为封面');
 }
 function onFiles(files) {
   const need = 9 - state.upload.images.length;
