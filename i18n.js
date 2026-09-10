@@ -162,6 +162,9 @@
     , '本地模式（数据只在这台设备上）': 'Local mode (data stays on this device)'
     , '已存在本地，云端上传失败，稍后会自动重试': 'Saved locally; cloud upload failed and will retry later'
     , '已存在本地，云端保存失败，稍后会自动重试': 'Saved locally; cloud save failed and will retry later'
+    , '开放时间（可选）': 'Opening hours (optional)'
+    , '例如：09:00-18:00 / 全天开放 / 周二闭馆': 'e.g. 09:00-18:00 / open all day / closed on Tuesdays'
+    , '待补充': 'TBD'
   };
 
   /* 动态文本：命中则按正则替换 */

@@ -804,7 +804,7 @@ function renderRecords(v) {
 function freshUpload() {
   return {
     name: '', address: '', city: '', area: '', scene: '', lat: null, lng: null, scenePicked: false,
-    indoor: true, spaceTouched: false, styles: [], images: [], desc: '', tips: '', price: '', cityPicked: false,
+    indoor: true, spaceTouched: false, styles: [], images: [], desc: '', tips: '', price: '', openTime: '', cityPicked: false,
     placePicked: false, placeLabel: '', gpsLat: null, gpsLng: null
   };
 }
@@ -825,6 +825,7 @@ function uploadFromSpot(s) {
     desc: s.photoDesc || '',
     tips: s.tips && s.tips.indexOf('暂未填写') < 0 ? s.tips : '',
     price: s.price && s.price !== '待补充' ? s.price : '',
+    openTime: s.openTime && s.openTime !== '待补充' ? s.openTime : '',
     cityPicked: true,
     placePicked: typeof s.lat === 'number' && typeof s.lng === 'number',
     placeLabel: [s.name, s.area, s.city].filter(Boolean).join(' · '),
@@ -848,7 +849,7 @@ function uploadFormHTML(u, isEdit) {
           <button class="mini-btn" onclick="requestCurrentCity()"><span class="mat">my_location</span> 重新定位</button>
         </div>
         <p class="hint" id="locHint">进入页面会自动定位，也可以手动选择下方城市。</p>
-        <div class="chips scroll-hide" id="cityQuick">${CITIES.map((c) => `<button class="chip ${u.city === c ? 'on' : ''}" onclick="pickCity('${c}')">${c}</button>`).join('')}</div>
+        <div class="chips scroll-hide" id="cityQuick">${CITIES.map((c) => `<button class="chip ${u.city === c ? 'on' : ''}" data-val="${esc(c)}" onclick="pickCity('${c}')">${c}</button>`).join('')}</div>
       </div>
       <div class="block">
         <h3><span class="mat">add_location_alt</span> 你拍到的地方<i class="req">必填</i></h3>
@@ -862,7 +863,7 @@ function uploadFormHTML(u, isEdit) {
       </div>
       <div class="block">
         <h3><span class="mat">category</span> 场景类型</h3>
-        <div class="chips wrap" id="scenePick">${SCENE_TYPES.map((t) => `<button class="chip ${u.scene === t ? 'on' : ''}" onclick="pickScene('${t}')">${t}</button>`).join('')}</div>
+        <div class="chips wrap" id="scenePick">${SCENE_TYPES.map((t) => `<button class="chip ${u.scene === t ? 'on' : ''}" data-val="${esc(t)}" onclick="pickScene('${t}')">${t}</button>`).join('')}</div>
         <p class="hint">不选会根据地点名称自动判断</p>
         <div class="seg" id="spaceSeg">
           <button class="${!u.indoor ? 'on' : ''}" onclick="pickSpace(false)">室外</button>
@@ -871,7 +872,7 @@ function uploadFormHTML(u, isEdit) {
       </div>
       <div class="block">
         <h3><span class="mat">palette</span> 出片风格<i class="req">至少选 1 个</i></h3>
-        <div class="chips wrap" id="stylePick">${STYLE_TAGS.map((t) => `<button class="chip ${u.styles.includes(t) ? 'on' : ''}" onclick="pickStyle('${t}')">${t}</button>`).join('')}</div>
+        <div class="chips wrap" id="stylePick">${STYLE_TAGS.map((t) => `<button class="chip ${u.styles.includes(t) ? 'on' : ''}" data-val="${esc(t)}" onclick="pickStyle('${t}')">${t}</button>`).join('')}</div>
       </div>
       <div class="block">
         <h3><span class="mat">photo_library</span> 实拍照片<i class="req">2-9 张</i></h3>
@@ -885,6 +886,8 @@ function uploadFormHTML(u, isEdit) {
         <textarea id="uTips" class="field ta" rows="3" placeholder="例如：下午4-5点光线最好，部分区域禁止闪光灯，周末人多…" oninput="state.upload.tips=this.value">${esc(u.tips)}</textarea>
         <h3 style="margin-top:16px"><span class="mat">payments</span> 消费 / 门票提示（可选）</h3>
         <input id="uPrice" class="field" value="${esc(u.price)}" placeholder="例如：免费 / 门票80元 / 人均120元" oninput="state.upload.price=this.value" />
+        <h3 style="margin-top:16px"><span class="mat">schedule</span> 开放时间（可选）</h3>
+        <input id="uOpen" class="field" value="${esc(u.openTime)}" placeholder="例如：09:00-18:00 / 全天开放 / 周二闭馆" oninput="state.upload.openTime=this.value" />
       </div>
       <button class="primary-btn" onclick="${isEdit ? 'saveEdit()' : 'submitSpot()'}">${isEdit ? '保存修改' : '提交审核'}</button>
       <p class="audit-note">${isEdit ? '保存后状态会变成“审核中”，通过后更新公开展示。演示版可在 我的 → 审核台 模拟审核。' : '提交后先进入“待审核”，审核通过才会公开到首页。演示版可在 我的 → 审核台 模拟审核。'}</p>
@@ -961,6 +964,7 @@ async function saveEdit() {
   s.sceneType = u.scene;
   s.styleTags = u.styles.slice(0, 6);
   s.price = u.price.trim() || '待补充';
+  s.openTime = u.openTime.trim() || '待补充';
   s.indoor = u.indoor;
   s.palette = SCENE_PALETTE[u.scene] || s.palette;
   s.emoji = SCENE_EMOJI[u.scene] || s.emoji;
@@ -1035,7 +1039,7 @@ function removeImg(i) {
 function pickCity(c) {
   state.upload.city = c;
   state.upload.cityPicked = true;
-  document.querySelectorAll('#cityQuick .chip').forEach((b) => b.classList.toggle('on', b.textContent === c));
+  document.querySelectorAll('#cityQuick .chip').forEach((b) => b.classList.toggle('on', b.dataset.val === c));
   const chip = document.getElementById('cityChip');
   if (chip) chip.textContent = c;
   const hint = document.getElementById('locHint');
@@ -1050,7 +1054,7 @@ function pickScene(t) {
   renderSpaceSeg();
 }
 function renderSceneChips() {
-  document.querySelectorAll('#scenePick .chip').forEach((b) => b.classList.toggle('on', b.textContent === state.upload.scene));
+  document.querySelectorAll('#scenePick .chip').forEach((b) => b.classList.toggle('on', b.dataset.val === state.upload.scene));
 }
 function pickSpace(indoor) {
   state.upload.indoor = indoor;
@@ -1070,7 +1074,7 @@ function pickStyle(t) {
   if (i >= 0) a.splice(i, 1);
   else if (a.length < 6) a.push(t);
   else { toast('最多选 6 个风格标签'); return; }
-  document.querySelectorAll('#stylePick .chip').forEach((b) => b.classList.toggle('on', a.includes(b.textContent)));
+  document.querySelectorAll('#stylePick .chip').forEach((b) => b.classList.toggle('on', a.includes(b.dataset.val)));
 }
 function onPlaceText(value) {
   state.upload.name = value;
@@ -1251,7 +1255,7 @@ function pickGeoResult(i) {
 function updateCityUI() {
   const chip = document.getElementById('cityChip');
   if (chip) chip.textContent = state.upload.city || '请选择城市';
-  document.querySelectorAll('#cityQuick .chip').forEach((b) => b.classList.toggle('on', b.textContent === state.upload.city));
+  document.querySelectorAll('#cityQuick .chip').forEach((b) => b.classList.toggle('on', b.dataset.val === state.upload.city));
 }
 function fillDemo() {
   const u = state.upload;
@@ -1262,11 +1266,13 @@ function fillDemo() {
   u.desc = '靠窗座位能拍维港晚霞侧脸\n餐桌甜品适合探店特写\n门口连廊可补港风街拍';
   u.tips = '预约窗边座，下午5点后光线最稳\n周末人多建议错峰';
   u.price = '人均180港币';
+  u.openTime = '11:30-22:30';
   const name = document.getElementById('uName'); if (name) name.value = u.name;
   const addr = document.getElementById('uAddress'); if (addr) addr.value = u.address;
   const desc = document.getElementById('uDesc'); if (desc) desc.value = u.desc;
   const tips = document.getElementById('uTips'); if (tips) tips.value = u.tips;
   const price = document.getElementById('uPrice'); if (price) price.value = u.price;
+  const open = document.getElementById('uOpen'); if (open) open.value = u.openTime;
   if (!u.cityPicked) u.city = '香港';
   updateCityUI();
   detectText(u.name);
@@ -1289,7 +1295,7 @@ async function submitSpot() {
     sceneType: u.scene,
     styleTags: u.styles.slice(0, 6),
     price: u.price.trim() || '待补充',
-    openTime: '待补充',
+    openTime: u.openTime.trim() || '待补充',
     indoor: u.indoor,
     lat: coords ? coords[0] : (typeof u.gpsLat === 'number' ? u.gpsLat : null),
     lng: coords ? coords[1] : (typeof u.gpsLng === 'number' ? u.gpsLng : null),
