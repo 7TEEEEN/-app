@@ -7,7 +7,7 @@ const LS = {
   prof: 'vibe2_prof',
   ver: 'vibe2_ver'
 };
-const DATA_VER = 2;
+const DATA_VER = 3;
 
 const STYLE_TAGS = ['复古艺术', '法式温柔', '港风', '清冷高级', '日系', '暗黑氛围感', '落日氛围感', '工业风', '胶片感', '街拍'];
 const SCENE_TYPES = ['餐厅', '咖啡馆', '博物馆展馆', '老街街道', '公园', '商圈', '废墟老建筑'];
@@ -90,100 +90,9 @@ const SCENE_PALETTE = {
 };
 
 /* 示例配图：在线加载真实图，离线自动切换为渐变占位图 */
-const IMG = {
-  rest1: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=900&q=80',
-  rest2: 'https://images.unsplash.com/photo-1533777857889-4be7c70b33f7?auto=format&fit=crop&w=900&q=80',
-  view1: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80',
-  mus1: 'https://images.unsplash.com/photo-1565060169194-19fabf63012d?auto=format&fit=crop&w=900&q=80',
-  mus2: 'https://images.unsplash.com/photo-1577083552431-6e5fd01988ec?auto=format&fit=crop&w=900&q=80',
-  mus3: 'https://images.unsplash.com/photo-1554907984-15263bfd63bd?auto=format&fit=crop&w=900&q=80',
-  cafe1: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=900&q=80',
-  cafe2: 'https://images.unsplash.com/photo-1511081692775-05d0f180a065?auto=format&fit=crop&w=900&q=80',
-  cafe3: 'https://images.unsplash.com/photo-1521017432531-fbd92d768814?auto=format&fit=crop&w=900&q=80',
-  street1: 'https://images.unsplash.com/photo-1518005020951-eccb494ad742?auto=format&fit=crop&w=900&q=80',
-  street2: 'https://images.unsplash.com/photo-1533929736458-ca588d08c8be?auto=format&fit=crop&w=900&q=80',
-  book1: 'https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&w=900&q=80',
-  book2: 'https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&w=900&q=80',
-  roof1: 'https://images.unsplash.com/photo-1519608487953-e999c86e7455?auto=format&fit=crop&w=900&q=80',
-  green1: 'https://images.unsplash.com/photo-1483794344563-d27a8d18014e?auto=format&fit=crop&w=900&q=80',
-  green2: 'https://images.unsplash.com/photo-1501004318641-b39e6451bec6?auto=format&fit=crop&w=900&q=80'
-};
-const starterSpots = [
-  { id: 'hk-tst-harbour-restaurant', name: '尖沙咀海边窗景餐厅', city: '香港', area: '尖沙咀', address: '尖沙咀广东道海港城附近', sceneType: '餐厅', styleTags: ['港风', '法式温柔', '落日氛围感'], price: '人均180港币', openTime: '11:30-22:30', indoor: true, palette: ['#B0805C', '#4A3F45'], emoji: '🍽️', uploadUser: '取景编辑部', status: 'approved',
-    photoDesc: '靠窗座位能拍维港背景和晚霞侧脸\n餐桌上的玻璃杯、甜品和窗外灯光很适合探店特写\n门口霓虹和商场连廊可以补一组港风街拍',
-    tips: '尽量预约窗边座，下午5点到日落前光线最稳\n周末人多，建议避开饭点\n拍照时不要长时间占用过道',
-    images: [IMG.rest1, IMG.rest2, IMG.view1] },
-  { id: 'taipei-retro-museum', name: '旧城复古博物馆', city: '台北', area: '中正区', address: '中正区南海路 49 号', sceneType: '博物馆展馆', styleTags: ['复古艺术', '胶片感', '暗黑氛围感'], price: '门票80元', openTime: '09:00-17:00', indoor: true, palette: ['#6E5A4A', '#2F2A2E'], emoji: '🏛️', uploadUser: '取景编辑部', status: 'approved',
-    photoDesc: '大厅复古雕花门窗适合拍人像侧影\n走廊暖黄灯光胶片复古感很强\n老展品旁边适合拍故事感氛围照\n窗边逆光很适合半身像',
-    tips: '下午3-4点光线最好\n部分展厅禁止闪光灯\n周末人多，建议开馆后一小时内到',
-    images: [IMG.mus1, IMG.mus2, IMG.mus3] },
-  { id: 'shanghai-window-cafe', name: '红砖窗边咖啡馆', city: '上海', area: '武康路', address: '徐汇区武康路 376 号附近', sceneType: '咖啡馆', styleTags: ['法式温柔', '复古艺术', '胶片感'], price: '人均58元', openTime: '10:00-22:00', indoor: true, palette: ['#A9715B', '#6F8F7B'], emoji: '☕', uploadUser: 'Aki', status: 'approved',
-    photoDesc: '窗边桌位适合拍半身人像和咖啡生活感\n红砖外墙能拍法式街角\n玻璃反射可以拍松弛感自拍',
-    tips: '下午4点后光线从侧面进来最柔\n热门窗边座需要错峰\n避免把路人和车牌拍得太清楚',
-    images: [IMG.cafe1, IMG.cafe2, IMG.cafe3] },
-  { id: 'guangzhou-shamian', name: '沙面岛欧陆建筑区', city: '广州', area: '沙面', address: '荔湾区沙面岛', sceneType: '公园', styleTags: ['法式温柔', '日系', '复古艺术'], price: '免费', openTime: '全天开放', indoor: false, palette: ['#B7C9B2', '#D9C9A3'], emoji: '🌳', uploadUser: '小林', status: 'approved',
-    photoDesc: '欧陆老建筑群和林荫道，随手拍都是度假感\n教堂前小广场适合拍全身人像\n江边落日剪影很浪漫',
-    tips: '黄昏光线最好，江边风大\n周末游客多，清晨更出片\n部分建筑内部不开放拍摄',
-    images: [IMG.street1, IMG.street2, IMG.green2] },
-  { id: 'chengdu-bookstore', name: '木质阁楼书店', city: '成都', area: '镗钯街', address: '锦江区镗钯街 88 号', sceneType: '商圈', styleTags: ['日系', '清冷高级', '胶片感'], price: '免费入内，饮品人均35元', openTime: '11:00-21:30', indoor: true, palette: ['#8A6F52', '#C9B48A'], emoji: '📚', uploadUser: 'Momo', status: 'approved',
-    photoDesc: '木楼梯、书架灯带和二楼窗边都适合拍安静叙事感\n手拿深色封面书更像电影截图\n阁楼转角逆光适合拍半身',
-    tips: '室内偏暗，建议靠窗或用手机小灯补暖光\n不要长时间占用阅读座位',
-    images: [IMG.book1, IMG.book2] },
-  { id: 'shenzhen-rooftop', name: '蓝调天台停车场', city: '深圳', area: '南山', address: '南山区科技园某商场顶层', sceneType: '商圈', styleTags: ['落日氛围感', '暗黑氛围感', '清冷高级'], price: '停车场按小时收费', openTime: '10:00-23:00', indoor: false, palette: ['#2E3A5C', '#7B8AA8'], emoji: '🌆', uploadUser: 'Leo', status: 'approved',
-    photoDesc: '日落后20分钟能拍蓝调夜景\n栏杆前适合拍酷感半身\n远处楼宇灯光可以做人像背景虚化',
-    tips: '注意车辆和安全边界，不要翻越栏杆\n风大时发型和裙摆要提前准备',
-    images: [IMG.roof1, IMG.view1] },
-  { id: 'hangzhou-greenhouse', name: '玻璃温室花园', city: '杭州', area: '西湖', address: '西湖区植物园内温室区', sceneType: '公园', styleTags: ['日系', '法式温柔', '清冷高级'], price: '门票10元', openTime: '08:30-16:30', indoor: true, palette: ['#7D9B76', '#C7D8B8'], emoji: '🌿', uploadUser: 'Nana', status: 'approved',
-    photoDesc: '玻璃顶自然光很柔，自带柔光箱效果\n植物前景能拍森系包围感\n白裙或浅蓝衬衫很适合',
-    tips: '晴天上午10点前光线最好\n温室湿度高，镜头容易起雾，进门后等一分钟再拍',
-    images: [IMG.green1, IMG.green2] },
-  { id: 'hk-tai-kwun', name: '大馆 当代艺术馆', city: '香港', area: '中环', address: '中环荷李活道10号', sceneType: '博物馆展馆', styleTags: ['复古艺术', '工业风', '暗黑氛围感'], price: '免费（部分特展另收费）', openTime: '10:00-20:00（周二闭馆）', indoor: true, palette: ['#7D5A50', '#2B2B33'], emoji: '🏛️', uploadUser: '取景编辑部', status: 'approved',
-    photoDesc: '红砖外墙与铁艺楼梯是天然背景板\n旋梯从顶楼往下拍，线条构图一绝\n阳光斜照的走廊适合拍复古胶片人像\n夜晚灯光下自带暗调电影感',
-    tips: '下午3-5点阳光斜打在西侧红砖墙\n部分展厅禁止闪光灯和三脚架\n周末人多，建议工作日11点前到',
-    images: [IMG.mus2, IMG.mus3, IMG.mus1] },
-  { id: 'hk-tst-waterfront', name: '尖沙咀海滨长廊·钟楼', city: '香港', area: '尖沙咀', address: '梳士巴利道海滨', sceneType: '公园', styleTags: ['落日氛围感', '港风'], price: '免费', openTime: '24小时', indoor: false, palette: ['#E8834F', '#3B4B68'], emoji: '🌇', uploadUser: '取景编辑部', status: 'approved',
-    photoDesc: '黄昏时维港日落加钟楼剪影，港风氛围拉满\n海风加蓝调时刻适合拍清冷侧影\n晚上灯光亮起可以拍夜景人像',
-    tips: '日落前30分钟到，占据钟楼右侧栏杆机位\n周末人多，可往文化中心方向走\n海边风大，注意发型',
-    images: [IMG.view1, IMG.rest2, IMG.roof1] }
-];
-const moreSpots = [
-  { id: 'hk-man-mo', name: '上环文武庙', city: '香港', area: '上环', address: '荷李活道124号', sceneType: '老街街道', styleTags: ['暗黑氛围感', '复古艺术', '胶片感'], price: '免费（香油随缘）', openTime: '08:00-18:00', indoor: true, palette: ['#6B1F2A', '#D8B06A'], emoji: '🏮', uploadUser: '港风研究所', status: 'approved',
-    photoDesc: '巨型线香与烟雾缭绕，逆光拍剪影绝了\n红灯笼和木雕门适合拍胶片感特写\n香火烟尘里拍人像自带故事感',
-    tips: '上午光线透过屋顶缝隙最好拍\n殿内昏暗，建议大光圈或手机夜景模式\n注意安静，尊重参拜者',
-    images: [IMG.mus3, IMG.mus1, IMG.street1] },
-  { id: 'hk-stone-slab', name: '中环石板街（砵典乍街）', city: '香港', area: '中环', address: '中环砵典乍街', sceneType: '老街街道', styleTags: ['港风', '街拍', '复古艺术'], price: '免费', openTime: '全天开放', indoor: false, palette: ['#5F6A72', '#C9B79C'], emoji: '🛤️', uploadUser: '港风研究所', status: 'approved',
-    photoDesc: '石级加两旁老店，港片即视感\n阴天或雨天石板反光更有味道\n从下往上仰拍压缩感强',
-    tips: '清晨人少最好拍\n雨天石板湿滑注意安全\n街边老铺做背景很出片',
-    images: [IMG.street1, IMG.street2] },
-  { id: 'taipei-songshan', name: '松山文创园区', city: '台北', area: '松山', address: '信义区光复南路133号', sceneType: '博物馆展馆', styleTags: ['复古艺术', '工业风', '日系'], price: '免费入园（展览另收费）', openTime: '09:00-18:00', indoor: true, palette: ['#B0604A', '#7D9B76'], emoji: '🎨', uploadUser: '台北散步日记', status: 'approved',
-    photoDesc: '老烟厂红砖厂房加绿植，日系感很强\n天井光线洒落，逆光氛围拉满\n展馆内几何线条适合拍结构感',
-    tips: '户外园区全天开放，室内展馆18点闭馆\n周末有市集人流较大\n廊道光影上午最美',
-    images: [IMG.mus1, IMG.green1, IMG.mus2] },
-  { id: 'taipei-tamsui', name: '淡水老街·渔人码头', city: '台北', area: '淡水', address: '淡水区中正路一带', sceneType: '老街街道', styleTags: ['日系', '落日氛围感', '清冷高级'], price: '免费', openTime: '全天开放', indoor: false, palette: ['#7FB2C9', '#F6D992'], emoji: '⛵', uploadUser: '台北散步日记', status: 'approved',
-    photoDesc: '淡水河加渔船，日系电影感\n渔人码头情人桥日落很浪漫\n老街巷弄里的老招牌适合街拍',
-    tips: '傍晚光影最柔和\n周末人潮多，早上更清净\n渔人码头风大，注意保暖',
-    images: [IMG.green2, IMG.view1, IMG.street2] },
-  { id: 'shanghai-wukang', name: '武康路老洋房街角', city: '上海', area: '武康路', address: '徐汇区武康路', sceneType: '老街街道', styleTags: ['法式温柔', '复古艺术', '街拍'], price: '免费', openTime: '全天开放', indoor: false, palette: ['#C8A97E', '#4F5D75'], emoji: '🍂', uploadUser: 'Aki', status: 'approved',
-    photoDesc: '武康大楼转角机位，法式复古大片\n梧桐树影下行走抓拍很自然\n老洋房大门和红砖墙背景出片',
-    tips: '上午顺光拍武康大楼更好看\n周末人多，建议工作日清晨\n斑马线中央机位注意安全',
-    images: [IMG.cafe3, IMG.street1, IMG.cafe1] },
-  { id: 'shanghai-bund-source', name: '外滩源老建筑群', city: '上海', area: '外滩', address: '黄浦区圆明园路一带', sceneType: '商圈', styleTags: ['复古艺术', '港风', '清冷高级'], price: '免费', openTime: '全天开放（建筑内部另定）', indoor: false, palette: ['#B99A6B', '#22283A'], emoji: '🏛️', uploadUser: '取景编辑部', status: 'approved',
-    photoDesc: '老银行建筑群，复古典雅感\n夜晚灯光亮起如电影场景\n圆明园路街拍欧美既视感',
-    tips: '晚上7点后灯光全开\n清晨人少适合拍空镜\n部分建筑外墙禁止倚靠拍摄',
-    images: [IMG.mus2, IMG.roof1, IMG.mus3] },
-  { id: 'guangzhou-dongshankou', name: '东山口红砖洋楼', city: '广州', area: '东山口', address: '越秀区东山口庙前直街一带', sceneType: '老街街道', styleTags: ['法式温柔', '复古艺术', '街拍'], price: '免费', openTime: '全天开放', indoor: false, palette: ['#C58F6D', '#8FA9A0'], emoji: '🏡', uploadUser: '小林', status: 'approved',
-    photoDesc: '红砖洋楼群，法式温柔感\n绿荫小巷抓拍很出片\n咖啡馆小院适合下午茶氛围',
-    tips: '下午3-5点光线最柔和\n周末人多，选工作日\n老洋楼多为民居，勿打扰住户',
-    images: [IMG.street2, IMG.cafe1, IMG.street1] },
-  { id: 'chengdu-dongjiao', name: '东郊记忆老厂房', city: '成都', area: '东郊记忆', address: '成华区建设南支路4号', sceneType: '废墟老建筑', styleTags: ['工业风', '暗黑氛围感', '复古艺术'], price: '免费入园', openTime: '全天（场馆各异）', indoor: false, palette: ['#6D4C41', '#263238'], emoji: '🚂', uploadUser: 'Momo', status: 'approved',
-    photoDesc: '老工业厂房加火车头，工业大片\n红砖烟囱背景很出片\n夜晚霓虹灯带赛博感',
-    tips: '园区大，预留2小时以上\n白天光线硬，傍晚更好拍\n部分区域是商户，注意消费提示',
-    images: [IMG.book2, IMG.mus1, IMG.roof1] },
-  { id: 'beijing-yangmeizhu', name: '杨梅竹斜街', city: '北京', area: '杨梅竹斜街', address: '西城区杨梅竹斜街', sceneType: '老街街道', styleTags: ['复古艺术', '街拍', '日系'], price: '免费', openTime: '全天开放', indoor: false, palette: ['#8A8A85', '#C2A878'], emoji: '📚', uploadUser: '胡同漫游', status: 'approved',
-    photoDesc: '老北京胡同加文创小店，文艺复古\n书店橱窗光影适合拍胶片感\n青砖灰瓦背景干净',
-    tips: '上午光线斜照胡同最美\n胡同窄，注意来往自行车\n部分小院不开放，尊重居民',
-    images: [IMG.book1, IMG.street1, IMG.book2] }
-];
+/* 示例数据已清空：应用只展示真实内容（自己上传、审核通过后公开） */
+const starterSpots = [];
+const moreSpots = [];
 /* ---------- 工具函数 ---------- */
 function esc(value) {
   return String(value == null ? '' : value).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -244,8 +153,46 @@ function profile() {
     avatar: '',
     interests: [],
     theme: 'system',
+    lang: 'auto',
     onboarded: false
   }, loadLS(LS.prof, {}));
+}
+/* ---------- 语言（跟随系统 / 简 / 繁 / 英） ---------- */
+function profileLang() {
+  const set = profile().lang || 'auto';
+  if (set === 'en' || set === 'zh-Hans' || set === 'zh-Hant') return set;
+  const list = (navigator.languages && navigator.languages.length) ? navigator.languages : [navigator.language || 'en'];
+  for (let i = 0; i < list.length; i++) {
+    const l = String(list[i] || '').toLowerCase();
+    if (l.indexOf('zh') === 0) {
+      if (/hant|tw|hk|mo/.test(l)) return 'zh-Hant';
+      return 'zh-Hans';
+    }
+    if (l.indexOf('en') === 0) return 'en';
+  }
+  return 'en';
+}
+function langLabel(v) {
+  if (v === 'en') return 'English';
+  if (v === 'zh-Hant') return '繁體中文';
+  if (v === 'zh-Hans') return '简体中文';
+  return '跟随系统 / System';
+}
+function applyLang() {
+  if (!window.HavenI18n) return;
+  try { window.HavenI18n.apply(profileLang()); } catch (e) { /* 忽略 */ }
+}
+let langTimer = null;
+function scheduleLang() {
+  clearTimeout(langTimer);
+  langTimer = setTimeout(applyLang, 60);
+}
+function setLang(v) {
+  const p = profile();
+  p.lang = v;
+  saveLS(LS.prof, p);
+  render();
+  toast(v === 'auto' ? '已跟随系统语言' : '语言已切换');
 }
 
 let spots = loadLS(LS.spots, null);
@@ -321,6 +268,7 @@ function render(opts) {
   void v.offsetWidth;
   v.classList.add('view-anim');
   updateTabs(path);
+  applyLang();
   if (opts && opts.keepScroll) requestAnimationFrame(() => window.scrollTo(0, sy));
 }
 function updateTabs(path) {
@@ -470,7 +418,7 @@ function renderHome(v) {
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2Z"/></svg>
         </button>
       </header>
-      ${list.length ? `<div class="feed">${list.map((s) => cardHTML(s, false)).join('')}</div>` : emptyHTML('还没有匹配的打卡点，换个风格或场景试试')}
+      ${list.length ? `<div class="feed">${list.map((s) => cardHTML(s, false)).join('')}</div>` : emptyHTML('还没有打卡点，点右上角 + 上传第一个吧')}
     </div>`;
 }
 function hcardHTML(spot) {
@@ -1855,6 +1803,17 @@ function renderProfile(v) {
           <button class="${(p.theme || 'system') === 'system' ? 'on' : ''}" onclick="setTheme('system')">跟随系统</button>
         </div>
       </div>
+      <div class="block">
+        <h3><span class="mat">translate</span> 语言</h3>
+        <p class="hint">默认跟随系统语言；不是简体中文 / 繁体中文时自动使用英文。</p>
+        <div class="chips wrap">
+          <button class="chip ${(p.lang || 'auto') === 'auto' ? 'on' : ''}" onclick="setLang('auto')">跟随系统</button>
+          <button class="chip ${p.lang === 'zh-Hans' ? 'on' : ''}" onclick="setLang('zh-Hans')">简体中文</button>
+          <button class="chip ${p.lang === 'zh-Hant' ? 'on' : ''}" onclick="setLang('zh-Hant')">繁體中文</button>
+          <button class="chip ${p.lang === 'en' ? 'on' : ''}" onclick="setLang('en')">English</button>
+        </div>
+        <p class="hint">当前显示：${langLabel(profileLang())}</p>
+      </div>
       <div class="menu">
         <button class="menu-item" onclick="go('#/favorites')"><span><span class="mat">favorite</span> 我的收藏</span><i>›</i></button>
         <button class="menu-item" onclick="go('#/myuploads')"><span><span class="mat">upload</span> 我的投稿</span><i>›</i></button>
@@ -2072,6 +2031,9 @@ function resetDemo() {
 applyTheme();
 render();
 showOnboardingIfNeeded();
+if (window.MutationObserver) {
+  new MutationObserver(scheduleLang).observe(document.body, { childList: true, subtree: true, characterData: true });
+}
 if (typeof window.matchMedia === 'function') {
   const mq = window.matchMedia('(prefers-color-scheme: dark)');
   const onSystemChange = () => { if (themeMode() === 'system') applyTheme(); };
