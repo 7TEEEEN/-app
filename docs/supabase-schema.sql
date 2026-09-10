@@ -34,7 +34,13 @@ create table if not exists public.spots (
 create index if not exists spots_status_idx on public.spots (status);
 create index if not exists spots_created_idx on public.spots (created_at desc);
 
--- 2) 行级安全（RLS）
+-- 2) 显式授权给匿名客户端
+-- 说明：项目创建时如果选了「不要自动暴露新表」，就必须手动 GRANT，
+-- 否则浏览器用 anon key 访问会报权限不足（即使 RLS 策略允许）。
+grant usage on schema public to anon, authenticated;
+grant select, insert, update, delete on public.spots to anon, authenticated;
+
+-- 3) 行级安全（RLS）
 alter table public.spots enable row level security;
 
 drop policy if exists "spots_read"   on public.spots;
@@ -51,10 +57,12 @@ create policy "spots_insert" on public.spots for insert with check (true);
 create policy "spots_update" on public.spots for update using (true) with check (true);
 create policy "spots_delete" on public.spots for delete using (true);
 
--- 3) 图片存储桶（公开读，可上传）
+-- 4) 图片存储桶（公开读，可上传）
 insert into storage.buckets (id, name, public)
 values ('photos', 'photos', true)
 on conflict (id) do nothing;
+
+grant select, insert, update, delete on storage.objects to anon, authenticated;
 
 drop policy if exists "photos_read"   on storage.objects;
 drop policy if exists "photos_insert" on storage.objects;
