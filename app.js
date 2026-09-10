@@ -7,7 +7,8 @@ const LS = {
   prof: 'vibe2_prof',
   ver: 'vibe2_ver',
   dev: 'haven_device',
-  admin: 'haven_admin_code'
+  admin: 'haven_admin_code',
+  auto: 'haven_auto_approve'
 };
 const DATA_VER = 3;
 
@@ -221,6 +222,12 @@ function deviceId() {
   return d;
 }
 function adminCode() { return loadLS(LS.admin, '8888'); }
+function autoApprove() { return loadLS(LS.auto, true) !== false; }
+function setAutoApprove(on) {
+  saveLS(LS.auto, !!on);
+  render();
+  toast(on ? '已开启自动通过，新投稿直接上线' : '已关闭自动通过，新投稿需人工审核');
+}
 function cloudWrite(promise, okMsg, failMsg) {
   if (!promise || !promise.then) return;
   promise.then(() => { if (okMsg) toast(okMsg); })
@@ -276,7 +283,7 @@ async function syncLocalToCloud() {
     try {
       s.deviceId = s.deviceId || me;
       s.mine = true;
-      if (s.status !== 'pending' && s.status !== 'approved') s.status = 'pending';
+      s.status = (s.status === 'removed') ? 'removed' : (autoApprove() ? 'approved' : (s.status || 'pending'));
       s.images = await uploadImages(s.images || [], s.id);
       await CLOUD.insert(s);
       done++;
@@ -890,7 +897,9 @@ function uploadFormHTML(u, isEdit) {
         <input id="uOpen" class="field" value="${esc(u.openTime)}" placeholder="例如：09:00-18:00 / 全天开放 / 周二闭馆" oninput="state.upload.openTime=this.value" />
       </div>
       <button class="primary-btn" onclick="${isEdit ? 'saveEdit()' : 'submitSpot()'}">${isEdit ? '保存修改' : '提交审核'}</button>
-      <p class="audit-note">${isEdit ? '保存后状态会变成“审核中”，通过后更新公开展示。演示版可在 我的 → 审核台 模拟审核。' : '提交后先进入“待审核”，审核通过才会公开到首页。演示版可在 我的 → 审核台 模拟审核。'}</p>
+      <p class="audit-note">${autoApprove()
+        ? (isEdit ? '当前为自动通过：保存后立即更新上线。' : '当前为自动通过：提交后立即公开到首页；管理员发现违规可在 我的 → 审核台 下架。')
+        : (isEdit ? '保存后状态会变成“审核中”，通过后更新公开展示。' : '提交后先进入“待审核”，审核通过才会公开到首页。')}</p>
     </div>`;
 }
 function renderUpload(v) {
@@ -973,7 +982,7 @@ async function saveEdit() {
   s.images = u.images.slice(0, 9);
   s.lat = coords ? coords[0] : (typeof u.gpsLat === 'number' ? u.gpsLat : s.lat);
   s.lng = coords ? coords[1] : (typeof u.gpsLng === 'number' ? u.gpsLng : s.lng);
-  s.status = 'pending';
+  s.status = (s.status === 'removed') ? 'removed' : (autoApprove() ? 'approved' : 'pending');
   s.notice = '';
   s.updatedAt = Date.now();
   s.deviceId = s.deviceId || deviceId();
@@ -986,12 +995,12 @@ async function saveEdit() {
     try {
       s.images = await uploadImages(s.images, s.id);
       await CLOUD.update(s);
-      toast('已保存修改，等待重新审核');
+      toast(autoApprove() ? '已保存并更新上线' : '已保存修改，等待重新审核');
     } catch (e) {
       toast('已存在本地，云端保存失败，稍后会自动重试');
     }
   } else {
-    toast('已保存修改，等待重新审核');
+    toast(autoApprove() ? '已保存并更新上线' : '已保存修改，等待重新审核');
   }
   state.submitting = false;
   persistSpots();
@@ -1387,7 +1396,7 @@ async function submitSpot() {
     uploadUser: profile().nickname || '我',
     deviceId: deviceId(),
     mine: true,
-    status: 'pending',
+    status: autoApprove() ? 'approved' : 'pending',
     createdAt: Date.now()
   };
   spots.unshift(spot);
@@ -1401,12 +1410,12 @@ async function submitSpot() {
       spot.images = await uploadImages(spot.images, spot.id);
       const saved = await CLOUD.insert(spot);
       if (saved) Object.assign(spot, saved, { mine: true });
-      toast('已提交，等待审核');
+      toast(autoApprove() ? '已提交，直接公开上线' : '已提交，等待审核');
     } catch (e) {
       toast('已存在本地，云端上传失败，稍后会自动重试');
     }
   } else {
-    toast('已提交，等待审核');
+    toast(autoApprove() ? '已提交，直接公开上线' : '已提交，等待审核');
   }
   state.submitting = false;
   persistSpots();
@@ -2125,7 +2134,7 @@ function onAvatar(input) {
 function renderMyUploads(v) {
   const mine = spots.filter((s) => s.mine);
   v.innerHTML = pageShell('我的投稿', mine.length ? `
-    <p class="hint" style="margin-bottom:12px">投稿需审核通过后才会公开；点“编辑”可以重新上传照片、修改地点和拍照信息。若被拒绝或下架，这里会显示管理员的原因说明。</p>
+    <p class="hint" style="margin-bottom:12px">${autoApprove() ? '投稿会直接公开上线；' : '投稿需审核通过后才会公开；'}点“编辑”可以重新上传照片、修改地点和拍照信息。若被拒绝或下架，这里会显示管理员的原因说明。</p>
     <div class="list">${mine.map((s) => `
       <div class="list-item static">
         ${imgTag(s, 0, 'thumb', '')}
@@ -2162,6 +2171,14 @@ function renderAdmin(v) {
   v.innerHTML = pageShell('审核台（演示）', `
     <p class="hint" style="margin-bottom:8px">管理员视角：通过后公开上线；拒绝 / 下架时可填写原因，上传者会在“我的投稿”看到提示说明。</p>
     <div style="margin-bottom:12px;text-align:right"><button class="mini-btn" onclick="changeAdminCode()">修改管理员密码</button></div>
+    <div class="block">
+      <h3><span class="mat">verified_user</span> 自动审核</h3>
+      <p class="hint">开启后，新投稿和编辑后的内容会直接上线；发现违规可以在下方「已上线」里下架并填写原因。</p>
+      <div class="seg" id="autoSeg">
+        <button class="${autoApprove() ? 'on' : ''}" onclick="setAutoApprove(true)">自动通过</button>
+        <button class="${!autoApprove() ? 'on' : ''}" onclick="setAutoApprove(false)">人工审核</button>
+      </div>
+    </div>
     ${pending.length ? `<h3 class="admin-sec">待审核 · ${pending.length}</h3>${pending.map(adminCard).join('')}` : ''}
     ${live.length ? `<h3 class="admin-sec">已上线 · ${live.length}</h3>${live.map(adminCard).join('')}` : ''}
     ${handled.length ? `<h3 class="admin-sec">已处理 · ${handled.length}</h3>${handled.map(adminCard).join('')}` : ''}

@@ -169,6 +169,18 @@
     , '设为封面': 'Set as cover', '封面': 'Cover', '已设为封面': 'Set as cover'
     , '顺序已更新': 'Order updated', '拖动到想放的位置，松手完成排序': 'Drag to where you want it, then release'
     , '照片会自动压缩后保存在本地浏览器，方便演示。': 'Photos are compressed and uploaded to the cloud.'
+    , '自动审核': 'Auto approval'
+    , '开启后，新投稿和编辑后的内容会直接上线；发现违规可以在下方「已上线」里下架并填写原因。': 'When on, new posts and edits go live right away. Remove anything that breaks the rules from the Live list below.'
+    , '自动通过': 'Auto approve', '人工审核': 'Manual review'
+    , '已开启自动通过，新投稿直接上线': 'Auto approve on — new posts go live immediately'
+    , '已关闭自动通过，新投稿需人工审核': 'Auto approve off — new posts need manual review'
+    , '已提交，直接公开上线': 'Submitted — now live'
+    , '已保存并更新上线': 'Saved and updated live'
+    , '正在上传云端…': 'Uploading to cloud…'
+    , '管理员视角：通过后公开上线；拒绝 / 下架时可填写原因，上传者会在“我的投稿”看到提示说明。': 'Admin view: approve to publish; when rejecting or removing you can leave a reason the author sees in My posts.'
+    , '当前为自动通过：提交后立即公开到首页；管理员发现违规可在 我的 → 审核台 下架。': 'Auto approve is on: your post goes live right away. The admin can remove it later from Me → Review desk.'
+    , '当前为自动通过：保存后立即更新上线。': 'Auto approve is on: saving updates the live post immediately.'
+    , '投稿会直接公开上线；': 'Posts go live immediately; '
   };
 
   /* 动态文本：命中则按正则替换 */
