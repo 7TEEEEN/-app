@@ -693,7 +693,7 @@ function renderDetail(v, id) {
           <h3><span class="mat">photo_library</span> 实拍图集<em>用户投稿样片</em></h3>
           <div class="gallery">${spot.images.map((_, i) => `<div onclick="jumpImg(${i})">${imgTag(spot, i, '', `${spot.name} 样片${i + 1}`)}</div>`).join('')}</div>
         </section>
-        <div class="uploader"><span class="avatar">${esc((spot.uploadUser || '匿')[0])}</span><span>${esc(spot.uploadUser || '匿名用户')} 投稿</span></div>
+        <div class="uploader"><span class="avatar">${esc((spot.uploadUser || '匿')[0])}</span><span>${esc(spot.uploadUser || '匿名用户')} 投稿</span><button class="report-btn" onclick="reportSpot('${spot.id}')"><span class="mat">flag</span> 举报</button></div>
         ${related.length ? `<section class="block"><h3>相关打卡点</h3><div class="masonry">${related.map(cardHTML).join('')}</div></section>` : ''}
       </div>
       <div class="action-bar">
@@ -964,6 +964,9 @@ async function saveEdit() {
   const err = validateUpload(u);
   if (err) return toast(err);
   if (state.submitting) return;
+  state.submitting = true;
+  const screen = await screenUpload(u, true);
+  const flagged = screen.hits.length > 0 || screen.imgFlags.length > 0;
   const place = resolvePlaceCoords([u.name, u.address, u.area]) || CITY_COORDS[u.city] || null;
   const coords = (u.placePicked && typeof u.lat === 'number') ? [u.lat, u.lng] : place;
   s.name = u.name.trim();
@@ -982,25 +985,28 @@ async function saveEdit() {
   s.images = u.images.slice(0, 9);
   s.lat = coords ? coords[0] : (typeof u.gpsLat === 'number' ? u.gpsLat : s.lat);
   s.lng = coords ? coords[1] : (typeof u.gpsLng === 'number' ? u.gpsLng : s.lng);
-  s.status = (s.status === 'removed') ? 'removed' : (autoApprove() ? 'approved' : 'pending');
+  s.status = (s.status === 'removed') ? 'removed' : ((autoApprove() && !flagged) ? 'approved' : 'pending');
+  s.flagReason = flagTextOf(screen.hits, screen.imgFlags);
   s.notice = '';
   s.updatedAt = Date.now();
   s.deviceId = s.deviceId || deviceId();
   persistSpots();
   state.editingId = null;
   state.upload = freshUpload();
-  state.submitting = true;
+  const okMsg = flagged
+    ? '内容需人工审核（' + (screen.hits[0] || screen.imgFlags[0]) + '）'
+    : (autoApprove() ? '已保存并更新上线' : '已保存修改，等待重新审核');
   if (CLOUD) {
     toast('正在保存到云端…');
     try {
       s.images = await uploadImages(s.images, s.id);
       await CLOUD.update(s);
-      toast(autoApprove() ? '已保存并更新上线' : '已保存修改，等待重新审核');
+      toast(okMsg);
     } catch (e) {
       toast('已存在本地，云端保存失败，稍后会自动重试');
     }
   } else {
-    toast(autoApprove() ? '已保存并更新上线' : '已保存修改，等待重新审核');
+    toast(okMsg);
   }
   state.submitting = false;
   persistSpots();
@@ -1367,12 +1373,34 @@ function fillDemo() {
   detectText(u.name);
   toast('已填入示例，再上传 2-9 张照片即可提交');
 }
+/* ---------- 内容审核（文字 + 图片） ---------- */
+async function screenUpload(u, withImages) {
+  const mod = window.HavenModeration;
+  if (!mod) return { hits: [], imgFlags: [] };
+  const hits = mod.screenText([u.name, u.address, u.desc, u.tips, u.price]);
+  let imgFlags = [];
+  if (withImages && (u.images || []).length) {
+    toast('正在检查图片内容…');
+    try { imgFlags = await mod.checkImages(u.images); } catch (e) { imgFlags = []; }
+  }
+  return { hits: hits, imgFlags: imgFlags };
+}
+function flagTextOf(hits, imgFlags) {
+  const parts = [];
+  if (hits && hits.length) parts.push('文字：' + hits.join('、'));
+  if (imgFlags && imgFlags.length) parts.push('图片：' + imgFlags.join('；'));
+  return parts.join(' | ');
+}
+
 async function submitSpot() {
   const u = state.upload;
   const name = u.name.trim();
   const err = validateUpload(u);
   if (err) return toast(err);
   if (state.submitting) return;
+  state.submitting = true;
+  const screen = await screenUpload(u, true);
+  const flagged = screen.hits.length > 0 || screen.imgFlags.length > 0;
   const place = resolvePlaceCoords([name, u.address, u.area]) || CITY_COORDS[u.city] || null;
   const coords = (u.placePicked && typeof u.lat === 'number') ? [u.lat, u.lng] : place;
   const spot = {
@@ -1396,26 +1424,29 @@ async function submitSpot() {
     uploadUser: profile().nickname || '我',
     deviceId: deviceId(),
     mine: true,
-    status: autoApprove() ? 'approved' : 'pending',
+    status: (autoApprove() && !flagged) ? 'approved' : 'pending',
+    flagReason: flagTextOf(screen.hits, screen.imgFlags),
     createdAt: Date.now()
   };
   spots.unshift(spot);
   persistSpots();
   state.editingId = null;
   state.upload = freshUpload();
-  state.submitting = true;
+  const okMsg = flagged
+    ? '内容需人工审核（' + (screen.hits[0] || screen.imgFlags[0]) + '）'
+    : (autoApprove() ? '已提交，直接公开上线' : '已提交，等待审核');
   if (CLOUD) {
     toast('正在上传云端…');
     try {
       spot.images = await uploadImages(spot.images, spot.id);
       const saved = await CLOUD.insert(spot);
       if (saved) Object.assign(spot, saved, { mine: true });
-      toast(autoApprove() ? '已提交，直接公开上线' : '已提交，等待审核');
+      toast(okMsg);
     } catch (e) {
       toast('已存在本地，云端上传失败，稍后会自动重试');
     }
   } else {
-    toast(autoApprove() ? '已提交，直接公开上线' : '已提交，等待审核');
+    toast(okMsg);
   }
   state.submitting = false;
   persistSpots();
@@ -2168,6 +2199,7 @@ function renderAdmin(v) {
   const pending = spots.filter((s) => s.status === 'pending');
   const live = spots.filter((s) => s.status === 'approved');
   const handled = spots.filter((s) => s.status === 'removed' || s.status === 'rejected');
+  const reported = spots.filter((s) => (s.reports || 0) > 0);
   v.innerHTML = pageShell('审核台（演示）', `
     <p class="hint" style="margin-bottom:8px">管理员视角：通过后公开上线；拒绝 / 下架时可填写原因，上传者会在“我的投稿”看到提示说明。</p>
     <div style="margin-bottom:12px;text-align:right"><button class="mini-btn" onclick="changeAdminCode()">修改管理员密码</button></div>
@@ -2180,6 +2212,7 @@ function renderAdmin(v) {
       </div>
     </div>
     ${pending.length ? `<h3 class="admin-sec">待审核 · ${pending.length}</h3>${pending.map(adminCard).join('')}` : ''}
+    ${reported.length ? `<h3 class="admin-sec">被举报 · ${reported.length}</h3>${reported.map(adminCard).join('')}` : ''}
     ${live.length ? `<h3 class="admin-sec">已上线 · ${live.length}</h3>${live.map(adminCard).join('')}` : ''}
     ${handled.length ? `<h3 class="admin-sec">已处理 · ${handled.length}</h3>${handled.map(adminCard).join('')}` : ''}
   `);
@@ -2212,6 +2245,11 @@ function adminCard(s) {
         ? `<button class="mini-btn danger" onclick="removeSpot('${s.id}')">下架（违规）</button>`
         : `<button class="mini-btn ok" onclick="restoreSpot('${s.id}')">恢复上线</button>
            <button class="mini-btn danger" onclick="deleteSpot('${s.id}')">删除</button>`;
+  const flagLine = s.flagReason ? `<p class="admin-flag"><span class="mat">warning</span> ${esc(s.flagReason)}</p>` : '';
+  const reportLine = (s.reports || 0) > 0
+    ? `<p class="admin-flag"><span class="mat">flag</span> 被举报 ${s.reports} 次${s.reportNote ? '：' + esc(s.reportNote) : ''}
+       <button class="mini-btn" onclick="clearReports('${s.id}')">忽略举报</button></p>`
+    : '';
   return `
     <div class="audit">
       ${imgTag(s, 0, 'thumb', '')}
@@ -2219,6 +2257,8 @@ function adminCard(s) {
         <h3>${esc(s.name)}</h3>
         <p style="font-size:12px;color:var(--hint);margin-top:3px">${esc(s.city)}${s.area ? ' · ' + esc(s.area) : ''} · ${esc(s.sceneType)} · 投稿：${esc(s.uploadUser || '匿名')}</p>
         <p class="audit-desc">${esc(oneLine(s.photoDesc))}</p>
+        ${flagLine}
+        ${reportLine}
         ${s.notice ? `<p class="admin-note">已填原因：${esc(s.notice)}</p>` : ''}
         <div class="row-actions">${actions}</div>
       </div>
@@ -2236,6 +2276,9 @@ function approveSpot(id) {
   if (!s) return;
   s.status = 'approved';
   s.notice = '';
+  s.flagReason = '';
+  s.reports = 0;
+  s.reportNote = '';
   persistSpots();
   if (CLOUD) cloudWrite(CLOUD.update(s), null, '云端更新失败');
   toast('已通过，公开上线');
@@ -2273,6 +2316,34 @@ function restoreSpot(id) {
   persistSpots();
   if (CLOUD) cloudWrite(CLOUD.update(s), null, '云端更新失败');
   toast('已恢复上线');
+  render();
+}
+/* 举报：任何人可以举报，被举报 3 次自动转人工审核 */
+function reportSpot(id) {
+  const s = spots.find((x) => x.id === id);
+  if (!s) return;
+  const reason = prompt('举报原因（可留空）：例如广告 / 虚假地点 / 不适宜图片');
+  if (reason === null) return;
+  s.reports = (s.reports || 0) + 1;
+  if (reason.trim()) s.reportNote = reason.trim();
+  if (s.reports >= 3 && s.status === 'approved') {
+    s.status = 'pending';
+    s.flagReason = '被举报 ' + s.reports + ' 次' + (s.reportNote ? '：' + s.reportNote : '');
+  }
+  persistSpots();
+  if (CLOUD) cloudWrite(CLOUD.update(s), null, '举报提交失败');
+  toast('已收到举报，感谢反馈');
+  render();
+}
+function clearReports(id) {
+  const s = spots.find((x) => x.id === id);
+  if (!s) return;
+  s.reports = 0;
+  s.reportNote = '';
+  s.flagReason = '';
+  persistSpots();
+  if (CLOUD) cloudWrite(CLOUD.update(s), null, '云端更新失败');
+  toast('已忽略举报');
   render();
 }
 function resetDemo() {

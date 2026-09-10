@@ -392,6 +392,24 @@ body.hide-tab .tab-bar { display: none; }
   display: flex; align-items: center; justify-content: center;
 }
 .up-item, .up-item img { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.uploader .report-btn {
+  margin-left: auto;
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 5px 11px; border-radius: 999px;
+  font-size: 11.5px; color: #8a909b;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid var(--divider);
+}
+.uploader .report-btn .mat { font-size: 14px; }
+.admin-flag {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  margin-top: 6px; padding: 6px 9px; border-radius: 9px;
+  font-size: 11.5px; color: #9a5b2a;
+  background: rgba(212, 145, 58, 0.12);
+  border: 1px solid rgba(212, 145, 58, 0.28);
+}
+.admin-flag .mat { font-size: 14px; color: #c9862f; }
+.admin-flag .mini-btn { padding: 3px 9px; font-size: 11px; }
 .up-item.dragging { outline: 2px solid var(--gold); outline-offset: 1px; transform: scale(1.04); z-index: 3; box-shadow: 0 8px 20px rgba(31, 38, 51, 0.25); }
 .up-item.dragging img { opacity: 0.92; }
 .up-idx {

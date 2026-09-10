@@ -34,6 +34,11 @@ create table if not exists public.spots (
 create index if not exists spots_status_idx on public.spots (status);
 create index if not exists spots_created_idx on public.spots (created_at desc);
 
+-- 1b) 审核 / 举报相关字段（老项目升级用；已有则跳过）
+alter table public.spots add column if not exists reports     integer default 0;
+alter table public.spots add column if not exists report_note text default '';
+alter table public.spots add column if not exists flag_reason text default '';
+
 -- 2) 显式授权给匿名客户端
 -- 说明：项目创建时如果选了「不要自动暴露新表」，就必须手动 GRANT，
 -- 否则浏览器用 anon key 访问会报权限不足（即使 RLS 策略允许）。

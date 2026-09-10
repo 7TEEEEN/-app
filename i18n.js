@@ -181,6 +181,20 @@
     , '当前为自动通过：提交后立即公开到首页；管理员发现违规可在 我的 → 审核台 下架。': 'Auto approve is on: your post goes live right away. The admin can remove it later from Me → Review desk.'
     , '当前为自动通过：保存后立即更新上线。': 'Auto approve is on: saving updates the live post immediately.'
     , '投稿会直接公开上线；': 'Posts go live immediately; '
+    , '举报': 'Report', '忽略举报': 'Dismiss', '被举报': 'Reported'
+    , '举报原因（可留空）：例如广告 / 虚假地点 / 不适宜图片': 'Reason (optional): e.g. spam / fake place / inappropriate photo'
+    , '已收到举报，感谢反馈': 'Thanks — report received', '已忽略举报': 'Report dismissed'
+    , '正在检查图片内容…': 'Checking photos…'
+    , '手机号': 'phone number', '香港电话': 'HK phone number', '座机号': 'landline number'
+    , '邮箱': 'email', '链接': 'link', '招揽联系': 'contact soliciting', '微信号': 'WeChat ID', 'QQ号': 'QQ number'
+    , '文字：': 'Text: ', '图片：': 'Photos: '
+    , '代购': 'daigou/reseller', '微商': 'reseller ads', '私聊': 'DM me', '下单': 'order now'
+    , '优惠券': 'coupon', '免费领': 'free giveaway', '福利群': 'promo group', '贷款': 'loan ads'
+    , '博彩': 'gambling', '赌场': 'casino', '彩票': 'lottery', '色情': 'adult content'
+    , '涉黄': 'adult content', '约炮': 'hookup', '一夜情': 'hookup', '枪支': 'weapons'
+    , '毒品': 'drugs', '办证': 'fake certificates', '发票': 'fake invoices', '刷单': 'fake orders'
+    , '兼职日结': 'daily-pay job ads', '加微信': 'add WeChat', '引流': 'traffic farming'
+    , '广告位': 'ad slot', '推广合作': 'promo collab', '出售账号': 'account selling'
   };
 
   /* 动态文本：命中则按正则替换 */
@@ -211,6 +225,9 @@
     [/^投稿：(.+)$/, 'by $1'],
     [/^(.+) 投稿$/, '$1 posted'],
     [/^(.+)（(.+)）$/, '$1 ($2)']
+    , [/^内容需人工审核（(.+)）$/, 'Needs manual review ($1)']
+    , [/^被举报 (\d+) 次：(.*)$/, 'Reported $1 times: $2']
+    , [/^被举报 (\d+) 次$/, 'Reported $1 times']
   ];
 
   const SKIP_TAGS = { SCRIPT: 1, STYLE: 1, NOSCRIPT: 1, TEXTAREA: 1 };

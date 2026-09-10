@@ -11,7 +11,19 @@
     table: 'spots',
     bucket: 'photos'
   };
-  const COLS = 'id,name,city,area,address,scene_type,style_tags,price,open_time,indoor,lat,lng,palette,emoji,photo_desc,tips,images,upload_user,device_id,status,notice,created_at';
+  const BASE_COLS = 'id,name,city,area,address,scene_type,style_tags,price,open_time,indoor,lat,lng,palette,emoji,photo_desc,tips,images,upload_user,device_id,status,notice,created_at';
+  const EXTRA_COLS = 'reports,report_note,flag_reason';
+  const COLS = BASE_COLS + ',' + EXTRA_COLS;
+  const LEGACY_COLS = BASE_COLS;
+  /* 兼容：如果数据库还没加新字段，自动退回旧字段，不影响使用 */
+  function isColumnError(err) {
+    return /column|schema cache|does not exist/i.test(String((err && err.message) || err));
+  }
+  function legacyRow(row) {
+    const r = Object.assign({}, row);
+    delete r.reports; delete r.report_note; delete r.flag_reason;
+    return r;
+  }
 
   function headers(extra) {
     return Object.assign({
@@ -56,7 +68,10 @@
       upload_user: s.uploadUser || '',
       device_id: s.deviceId || '',
       status: s.status || 'pending',
-      notice: s.notice || ''
+      notice: s.notice || '',
+      reports: typeof s.reports === 'number' ? s.reports : 0,
+      report_note: s.reportNote || '',
+      flag_reason: s.flagReason || ''
     };
   }
 
@@ -83,29 +98,47 @@
       deviceId: r.device_id || '',
       status: r.status || 'pending',
       notice: r.notice || '',
+      reports: typeof r.reports === 'number' ? r.reports : 0,
+      reportNote: r.report_note || '',
+      flagReason: r.flag_reason || '',
       createdAt: r.created_at ? Date.parse(r.created_at) : Date.now()
     };
   }
 
   function list() {
     return request('/rest/v1/' + CFG.table + '?select=' + COLS + '&order=created_at.desc')
+      .catch((err) => {
+        if (!isColumnError(err)) throw err;
+        return request('/rest/v1/' + CFG.table + '?select=' + LEGACY_COLS + '&order=created_at.desc');
+      })
       .then((rows) => (rows || []).map(fromRow));
   }
 
   function insert(spot) {
-    return request('/rest/v1/' + CFG.table, {
+    const send = (row) => request('/rest/v1/' + CFG.table, {
       method: 'POST',
       headers: headers({ Prefer: 'return=representation' }),
-      body: JSON.stringify(toRow(spot))
-    }).then((rows) => (rows && rows[0] ? fromRow(rows[0]) : null));
+      body: JSON.stringify(row)
+    });
+    return send(toRow(spot))
+      .catch((err) => {
+        if (!isColumnError(err)) throw err;
+        return send(legacyRow(toRow(spot)));
+      })
+      .then((rows) => (rows && rows[0] ? fromRow(rows[0]) : null));
   }
 
   function update(spot) {
-    return request('/rest/v1/' + CFG.table + '?id=eq.' + encodeURIComponent(spot.id), {
+    const send = (row) => request('/rest/v1/' + CFG.table + '?id=eq.' + encodeURIComponent(spot.id), {
       method: 'PATCH',
       headers: headers({ Prefer: 'return=minimal' }),
-      body: JSON.stringify(toRow(spot))
+      body: JSON.stringify(row)
     });
+    return send(toRow(spot))
+      .catch((err) => {
+        if (!isColumnError(err)) throw err;
+        return send(legacyRow(toRow(spot)));
+      });
   }
 
   function remove(id) {
