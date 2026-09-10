@@ -5,7 +5,9 @@ const LS = {
   favs: 'vibe2_favs',
   hist: 'vibe2_hist',
   prof: 'vibe2_prof',
-  ver: 'vibe2_ver'
+  ver: 'vibe2_ver',
+  dev: 'haven_device',
+  admin: 'haven_admin_code'
 };
 const DATA_VER = 3;
 
@@ -208,6 +210,85 @@ function approvedSpots() { return spots.filter((s) => s.status === 'approved'); 
 function persistSpots() { saveLS(LS.spots, spots); }
 function persistFavs() { saveLS(LS.favs, [...favs]); }
 
+/* ---------- 云端（Supabase） ---------- */
+const CLOUD = (window.HavenData && window.HavenData.enabled) ? window.HavenData : null;
+function deviceId() {
+  let d = loadLS(LS.dev, null);
+  if (!d) {
+    d = 'dev-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
+    saveLS(LS.dev, d);
+  }
+  return d;
+}
+function adminCode() { return loadLS(LS.admin, '8888'); }
+function cloudWrite(promise, okMsg, failMsg) {
+  if (!promise || !promise.then) return;
+  promise.then(() => { if (okMsg) toast(okMsg); })
+    .catch((e) => toast((failMsg || '云端同步失败') + '：' + String((e && e.message) || e).slice(0, 60)));
+}
+async function uploadImages(images, spotId) {
+  if (!CLOUD) return images;
+  const out = [];
+  for (let i = 0; i < images.length; i++) {
+    const src = images[i];
+    if (typeof src === 'string' && src.startsWith('data:')) {
+      try {
+        out.push(await CLOUD.uploadPhoto(src, spotId + '-' + Date.now() + '-' + i + '.jpg'));
+        continue;
+      } catch (e) { /* 上传失败则保留原图，稍后可重试 */ }
+    }
+    out.push(src);
+  }
+  return out;
+}
+async function loadCloudSpots(showToast) {
+  if (!CLOUD) return false;
+  try {
+    const rows = await CLOUD.list();
+    const me = deviceId();
+    spots = rows.map((s) => { s.mine = s.deviceId === me; return s; });
+    saveLS(LS.spots, spots);
+    saveLS(LS.ver, DATA_VER);
+    state.cloud.ready = true;
+    state.cloud.error = '';
+    render();
+    if (showToast) toast('已连接云端 · ' + spots.length + ' 个打卡点');
+    return true;
+  } catch (e) {
+    state.cloud.ready = false;
+    state.cloud.error = String((e && e.message) || e);
+    if (showToast) toast('云端连接失败，先使用本地缓存');
+    return false;
+  }
+}
+/* 把之前存在本机、还没上传过的投稿同步到云端 */
+async function syncLocalToCloud() {
+  if (!CLOUD || state.cloud.syncing) return;
+  const cached = loadLS(LS.spots, []) || [];
+  const cloudIds = new Set(spots.map((s) => s.id));
+  const pending = cached.filter((s) => s.mine && !cloudIds.has(s.id));
+  if (!pending.length) return;
+  const me = deviceId();
+  state.cloud.syncing = true;
+  let done = 0;
+  for (let i = 0; i < pending.length; i++) {
+    const s = pending[i];
+    try {
+      s.deviceId = s.deviceId || me;
+      s.mine = true;
+      if (s.status !== 'pending' && s.status !== 'approved') s.status = 'pending';
+      s.images = await uploadImages(s.images || [], s.id);
+      await CLOUD.insert(s);
+      done++;
+    } catch (e) { /* 单条失败不影响其它 */ }
+  }
+  state.cloud.syncing = false;
+  if (done) {
+    toast('已把 ' + done + ' 条本地投稿同步到云端');
+    await loadCloudSpots(false);
+  }
+}
+
 /* ---------- 状态与路由 ---------- */
 const state = {
   style: null,
@@ -221,6 +302,8 @@ const state = {
   mapExpand: false,
   mapFocus: null,
   routeProfile: 'driving',
+  cloud: { ready: false, syncing: false, error: '' },
+  adminOk: false,
   q: '',
   city: '',
   free: false,
@@ -862,12 +945,13 @@ function validateUpload(u) {
   if (!u.desc.trim()) return '请填写“这里适合拍什么照片”';
   return null;
 }
-function saveEdit() {
+async function saveEdit() {
   const u = state.upload;
   const s = spots.find((x) => x.id === state.editingId);
   if (!s) { toast('找不到这条投稿'); return; }
   const err = validateUpload(u);
   if (err) return toast(err);
+  if (state.submitting) return;
   const place = resolvePlaceCoords([u.name, u.address, u.area]) || CITY_COORDS[u.city] || null;
   const coords = (u.placePicked && typeof u.lat === 'number') ? [u.lat, u.lng] : place;
   s.name = u.name.trim();
@@ -888,10 +972,25 @@ function saveEdit() {
   s.status = 'pending';
   s.notice = '';
   s.updatedAt = Date.now();
+  s.deviceId = s.deviceId || deviceId();
   persistSpots();
   state.editingId = null;
   state.upload = freshUpload();
-  toast('已保存修改，等待重新审核');
+  state.submitting = true;
+  if (CLOUD) {
+    toast('正在保存到云端…');
+    try {
+      s.images = await uploadImages(s.images, s.id);
+      await CLOUD.update(s);
+      toast('已保存修改，等待重新审核');
+    } catch (e) {
+      toast('已存在本地，云端保存失败，稍后会自动重试');
+    }
+  } else {
+    toast('已保存修改，等待重新审核');
+  }
+  state.submitting = false;
+  persistSpots();
   go('#/myuploads');
 }
 function renderUpGrid() {
@@ -1173,11 +1272,12 @@ function fillDemo() {
   detectText(u.name);
   toast('已填入示例，再上传 2-9 张照片即可提交');
 }
-function submitSpot() {
+async function submitSpot() {
   const u = state.upload;
   const name = u.name.trim();
   const err = validateUpload(u);
   if (err) return toast(err);
+  if (state.submitting) return;
   const place = resolvePlaceCoords([name, u.address, u.area]) || CITY_COORDS[u.city] || null;
   const coords = (u.placePicked && typeof u.lat === 'number') ? [u.lat, u.lng] : place;
   const spot = {
@@ -1199,6 +1299,7 @@ function submitSpot() {
     tips: u.tips.trim() || '投稿用户暂未填写避坑提示。',
     images: u.images.slice(0, 9),
     uploadUser: profile().nickname || '我',
+    deviceId: deviceId(),
     mine: true,
     status: 'pending',
     createdAt: Date.now()
@@ -1207,7 +1308,22 @@ function submitSpot() {
   persistSpots();
   state.editingId = null;
   state.upload = freshUpload();
-  toast('已提交，等待审核');
+  state.submitting = true;
+  if (CLOUD) {
+    toast('正在上传云端…');
+    try {
+      spot.images = await uploadImages(spot.images, spot.id);
+      const saved = await CLOUD.insert(spot);
+      if (saved) Object.assign(spot, saved, { mine: true });
+      toast('已提交，等待审核');
+    } catch (e) {
+      toast('已存在本地，云端上传失败，稍后会自动重试');
+    }
+  } else {
+    toast('已提交，等待审核');
+  }
+  state.submitting = false;
+  persistSpots();
   go('#/myuploads');
 }
 /* ---------- 地图 · 附近打卡点 ---------- */
@@ -1821,7 +1937,7 @@ function renderProfile(v) {
         <button class="menu-item" onclick="go('#/admin')"><span><span class="mat">shield</span> 审核台（演示）${pending.length ? `<span class="badge">${pending.length}</span>` : ''}</span><i>›</i></button>
         <button class="menu-item" onclick="resetDemo()"><span><span class="mat">cleaning_services</span> 清除本地数据</span><i>›</i></button>
       </div>
-      <p class="about">Haven · 网页原型演示<br>数据保存在本地浏览器，示例配图在线加载、离线自动切换为占位图。</p>
+      <p class="about">Haven · 网页原型演示<br>${CLOUD ? (state.cloud.ready ? '已连接云端，投稿对所有人可见' : '云端连接中…（暂时显示本地缓存）') : '本地模式（数据只在这台设备上）'}</p>
     </div>`;
 }
 function setNick(value) {
@@ -1944,15 +2060,45 @@ function statusText(s) {
   return s.status === 'approved' ? '已上线' : s.status === 'pending' ? '审核中' : s.status === 'removed' ? '已下架（违规）' : '已拒绝';
 }
 function renderAdmin(v) {
+  if (!state.adminOk) {
+    v.innerHTML = pageShell('审核台', `
+      <div class="block">
+        <h3><span class="mat">lock</span> 管理员密码</h3>
+        <p class="hint">审核台只有管理员能操作。输入密码解锁（首次默认 8888，进去后可以修改）。</p>
+        <input id="adminCodeInput" class="field" type="password" placeholder="请输入管理员密码" onkeydown="if(event.key==='Enter')adminUnlock(this.value)" />
+        <button class="primary-btn" style="margin-top:12px" onclick="adminUnlock(document.getElementById('adminCodeInput').value)">解锁</button>
+      </div>`);
+    return;
+  }
   const pending = spots.filter((s) => s.status === 'pending');
   const live = spots.filter((s) => s.status === 'approved');
   const handled = spots.filter((s) => s.status === 'removed' || s.status === 'rejected');
   v.innerHTML = pageShell('审核台（演示）', `
-    <p class="hint" style="margin-bottom:12px">管理员视角：通过后公开上线；拒绝 / 下架时可填写原因，上传者会在“我的投稿”看到提示说明。</p>
+    <p class="hint" style="margin-bottom:8px">管理员视角：通过后公开上线；拒绝 / 下架时可填写原因，上传者会在“我的投稿”看到提示说明。</p>
+    <div style="margin-bottom:12px;text-align:right"><button class="mini-btn" onclick="changeAdminCode()">修改管理员密码</button></div>
     ${pending.length ? `<h3 class="admin-sec">待审核 · ${pending.length}</h3>${pending.map(adminCard).join('')}` : ''}
     ${live.length ? `<h3 class="admin-sec">已上线 · ${live.length}</h3>${live.map(adminCard).join('')}` : ''}
     ${handled.length ? `<h3 class="admin-sec">已处理 · ${handled.length}</h3>${handled.map(adminCard).join('')}` : ''}
   `);
+}
+function adminUnlock(value) {
+  if (String(value || '') === adminCode()) {
+    state.adminOk = true;
+    render();
+    toast('已解锁审核台');
+  } else {
+    toast('密码不对');
+  }
+}
+function changeAdminCode() {
+  const now = prompt('请输入当前管理员密码');
+  if (now === null) return;
+  if (String(now) !== adminCode()) return toast('密码不对');
+  const next = prompt('设置新的管理员密码');
+  if (next === null) return;
+  if (!String(next).trim()) return toast('密码不能为空');
+  saveLS(LS.admin, String(next).trim());
+  toast('管理员密码已更新');
 }
 function adminCard(s) {
   const actions =
@@ -1979,6 +2125,7 @@ function deleteSpot(id) {
   if (!confirm('确定删除这条投稿吗？')) return;
   spots = spots.filter((s) => s.id !== id);
   persistSpots();
+  if (CLOUD) cloudWrite(CLOUD.remove(id), null, '云端删除失败');
   render();
 }
 function approveSpot(id) {
@@ -1987,6 +2134,7 @@ function approveSpot(id) {
   s.status = 'approved';
   s.notice = '';
   persistSpots();
+  if (CLOUD) cloudWrite(CLOUD.update(s), null, '云端更新失败');
   toast('已通过，公开上线');
   render();
 }
@@ -1998,6 +2146,7 @@ function rejectSpot(id) {
   s.status = 'rejected';
   s.notice = reason.trim() || '内容未通过审核';
   persistSpots();
+  if (CLOUD) cloudWrite(CLOUD.update(s), null, '云端更新失败');
   toast('已拒绝，原因已告知上传者');
   render();
 }
@@ -2009,6 +2158,7 @@ function removeSpot(id) {
   s.status = 'removed';
   s.notice = reason.trim() || '内容涉嫌违规，已下架';
   persistSpots();
+  if (CLOUD) cloudWrite(CLOUD.update(s), null, '云端更新失败');
   toast('已下架并通知上传者');
   render();
 }
@@ -2018,6 +2168,7 @@ function restoreSpot(id) {
   s.status = 'approved';
   s.notice = '';
   persistSpots();
+  if (CLOUD) cloudWrite(CLOUD.update(s), null, '云端更新失败');
   toast('已恢复上线');
   render();
 }
@@ -2031,6 +2182,7 @@ function resetDemo() {
 applyTheme();
 render();
 showOnboardingIfNeeded();
+loadCloudSpots(false).then((ok) => { if (ok) syncLocalToCloud(); });
 if (window.MutationObserver) {
   new MutationObserver(scheduleLang).observe(document.body, { childList: true, subtree: true, characterData: true });
 }

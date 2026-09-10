@@ -9,12 +9,13 @@
 | 代码仓库 | GitHub：`https://github.com/7TEEEEN/-app`（分支 `main`） |
 | 线上地址 | Vercel 导入该仓库后得到 `https://xxx.vercel.app`（自动部署，push 即更新） |
 | 形态 | 纯静态单页应用（`index.html` + `styles.css` + `app.js` + `i18n.js`），已支持 PWA（可添加到 iPhone 主屏幕） |
-| 数据 | 全部存在**访问者自己的浏览器 localStorage** → 目前**不共享** |
+| 数据 | ✅ 已接 **Supabase**（Project `iookfvtevixmdtjubpwn`）：投稿在云数据库、照片在 Storage，**所有人共享**；本机 localStorage 只作离线缓存 |
+| 管理员 | 审核台密码默认 `8888`，可在审核台里修改 |
 | 地图 | MapLibre GL JS + MapTiler（key 在前端，建议限制域名） |
 | 路线规划 | 驾车 / 步行 走 OSRM 公共路由；公共交通跳系统地图 |
 | 语言 | 简体中文 / 繁體中文 / English，默认跟随系统语言 |
 
-**关键结论：只要数据还存在浏览器本地，无论用链接、App 还是局域网分享，朋友都看不到你发的内容。要“朋友能看到”，必须先有共享后端。**
+**关键结论（2026-09 已解决）：数据已上云，朋友打开同一个链接就能看到相同内容。** 之前“只存在浏览器本地、朋友看不到”的问题已由 Supabase 解决；下面各节保留当时的方案对比，供以后扩展参考。
 
 ---
 

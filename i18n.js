@@ -148,6 +148,20 @@
     , '氛围感拍照打卡': 'mood photo spots'
     , '发布打卡点': 'New spot', '搜索机位': 'Search spots', '真实地图定位': 'Live map'
     , '这一类还没有机位，试试其它分类': 'No spots here yet — try another category'
+    , '管理员密码': 'Admin password'
+    , '审核台只有管理员能操作。输入密码解锁（首次默认 8888，进去后可以修改）。': 'Only the admin can use the review desk. Enter the password to unlock (default 8888; you can change it inside).'
+    , '请输入管理员密码': 'Enter admin password', '解锁': 'Unlock', '密码不对': 'Wrong password'
+    , '已解锁审核台': 'Review desk unlocked', '修改管理员密码': 'Change admin password'
+    , '请输入当前管理员密码': 'Enter the current admin password', '设置新的管理员密码': 'Set a new admin password'
+    , '密码不能为空': 'Password cannot be empty', '管理员密码已更新': 'Admin password updated'
+    , '正在上传云端…': 'Uploading to cloud…', '正在保存到云端…': 'Saving to cloud…'
+    , '已连接云端 · ': 'Connected · ', '云端连接失败，先使用本地缓存': 'Cloud connection failed — using local cache'
+    , '已把 ': 'Synced ', ' 条本地投稿同步到云端': ' local posts to the cloud'
+    , '已连接云端，投稿对所有人可见': 'Connected — posts are visible to everyone'
+    , '云端连接中…（暂时显示本地缓存）': 'Connecting to cloud… (showing local cache)'
+    , '本地模式（数据只在这台设备上）': 'Local mode (data stays on this device)'
+    , '已存在本地，云端上传失败，稍后会自动重试': 'Saved locally; cloud upload failed and will retry later'
+    , '已存在本地，云端保存失败，稍后会自动重试': 'Saved locally; cloud save failed and will retry later'
   };
 
   /* 动态文本：命中则按正则替换 */
